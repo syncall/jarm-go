@@ -108,7 +108,7 @@ func Fingerprint(t target, och chan result) {
 	results := []string{}
 	for _, probe := range jarm.GetProbes(t.Host, t.Port) {
 		dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: time.Second * 2})
-		addr := net.JoinHostPort(t.Host, fmt.Sprintf("%d", t.Port))
+		addr := net.JoinHostPort(t.IP.String(), fmt.Sprintf("%d", t.Port))
 
 		c := net.Conn(nil)
 		n := 0
@@ -168,6 +168,7 @@ var DefualtBackoff = func(r, m int) time.Duration {
 }
 
 type target struct {
+	IP   net.IP
 	Host string
 	Port int
 
@@ -228,9 +229,9 @@ func main() {
 				continue
 			}
 			if len(o.Target.Host) > 24 {
-				fmt.Printf("JARM\t%s:%d\t%s\n", o.Target.Host, o.Target.Port, o.Hash)
+				fmt.Printf("JARM\t%24s %s:%d\t%s\n", o.Target.IP, o.Target.Host, o.Target.Port, o.Hash)
 			} else {
-				fmt.Printf("JARM\t%24s:%d\t%s\n", o.Target.Host, o.Target.Port, o.Hash)
+				fmt.Printf("JARM\t%24s %24s:%d\t%s\n", o.Target.IP, o.Target.Host, o.Target.Port, o.Hash)
 			}
 
 		}
@@ -279,6 +280,13 @@ func main() {
 			}
 		}
 
+		if len(strings.Split(s, ":")) == 3 {
+			s_split := strings.Split(s, ":")
+			t.Host = s_split[0]
+			t.IP = net.ParseIP(s_split[1])
+			t.Port, _ = strconv.Atoi(s_split[2])
+		}
+
 		hosts := []string{t.Host}
 
 		for _, host := range hosts {
@@ -296,12 +304,26 @@ func main() {
 					if t.Port != 0 {
 						ports = []int{t.Port}
 					}
-					for _, port := range ports {
-						tch <- target{
-							Host: thost,
-							Port: port,
+					var ips []net.IP
+					if t.IP == nil {
+						ipsl, err := net.LookupIP(t.Host)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Could not get IPs: %v\n", err)
+							os.Exit(1)
+						}
+						ips = ipsl
+					} else {
+						ips = []net.IP{t.IP}
+					}
+					for _, tip := range ips {
+						for _, port := range ports {
+							tch <- target{
+								IP:   tip,
+								Host: thost,
+								Port: port,
 
-							Retries: *retries,
+								Retries: *retries,
+							}
 						}
 					}
 				}
