@@ -15,8 +15,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/RumbleDiscovery/jarm-go"
 	"github.com/RumbleDiscovery/rumble-tools/pkg/rnd"
+	"github.com/syncall/jarm-go"
 )
 
 // Version is set by the goreleaser build

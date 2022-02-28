@@ -1,4 +1,4 @@
-module github.com/RumbleDiscovery/jarm-go
+module github.com/syncall/jarm-go
 
 go 1.15
 
